@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+import wx, os
+import wx.grid as gridlib
+from wx import EVT_CLOSE
+import pandas as pd
+ 
+########################################################################
+
+class GridWindow(wx.Frame):    
+    def __init__(self, parent, filename):
+        super(GridWindow, self).__init__(parent, title=filename)
+        if ".CSV" in filename.upper():
+            self.data = pd.read_csv(filename, ",")
+        elif ".TSV" in filename.upper():
+            self.data = pd.read_csv(filename, "\t")
+        elif ".TXT" in filename.upper():
+            self.data = pd.read_csv(filename, "\t")
+        panel = wx.Panel(self, -1)
+        grid = self.create_grid(panel, self.data)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(grid, 1, wx.ALL|wx.EXPAND)
+        panel.SetSizer(sizer)
+        # Bind Close Event
+        EVT_CLOSE(self, self.exit)
+        self.Center()
+        self.Show()
+ 
+    def exit(self, event):
+        self.Destroy()
+ 
+    def create_grid(self, panel, data):
+        grid = gridlib.Grid(panel)
+        grid.CreateGrid(len(data), len(data.columns))
+        colnum = 0
+        for colname in data.columns.values:
+            grid.SetColLabelValue(colnum, colname)
+            rownum = 0
+            for value in data[colname]:
+                grid.SetCellValue(rownum, colnum, str(value))
+                rownum += 1
+            colnum += 1
+        return grid
+ 
+class MainWindow(wx.Frame):
+    """"""
+ 
+    #----------------------------------------------------------------------
+    def __init__(self, parent, title):
+        self.dirname = ''
+        self.data = None 
+        wx.Frame.__init__(self, parent, title=title, size=(200,-1))
+        
+        # Setting up the menu.
+        filemenu= wx.Menu()
+        menuOpen = filemenu.Append(wx.ID_OPEN, "&Open"," Open a file to edit")
+        menuAbout= filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
+        menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
+        # Creating the menubar.
+        menuBar = wx.MenuBar()
+        menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+        self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
+
+        # Events.
+        self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
+        self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
+        self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
+
+    def OnAbout(self,e):
+        # Create a message dialog box
+        dlg = wx.MessageDialog(self, " Open Source Expression and Microbiome Analysis \n By Jonathan Badger", "About PyGenTek 0.9", wx.OK)
+        dlg.ShowModal() # Shows it
+        dlg.Destroy() # finally destroy it when finished.
+
+    def OnExit(self,e):
+        self.Close(True)  # Close the frame.
+
+    def OnOpen(self,e):
+        """ Open a file"""
+        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "CSV|*.csv|TSV|*.tsv|TXT|*.txt|XLS|*.xls|XLSX|*.xlsx", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            fullname = os.path.join(dlg.GetDirectory(), dlg.GetFilename())
+            GridWindow(self, fullname)
+        dlg.Destroy()
+
+                
+app = wx.App(False)
+frame = MainWindow(None, "Sample editor")
+app.MainLoop()
+
